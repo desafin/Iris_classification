@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 # sklearn에서 iris 데이터셋을 불러옵니다.
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
+
 
 
 # 데이터 로드
@@ -32,7 +33,7 @@ print(X_test_tensor.shape)
 print(y_test_tensor.shape)
 
 # 하이퍼파라미터 설정
-nb_epochs = 10000  # 학습 에포크 수
+nb_epochs = 1000000  # 학습 에포크 수
 minibatch_size = 120  # 미니배치 크기
 
 # 신경망 모델 정의
@@ -72,6 +73,12 @@ class Model(nn.Module):
     def forward(self, x):
         return self.linear_layers(x)
 
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+                nn.init.zeros_(m.bias)
+
 # 모델, 손실 함수, 최적화 알고리즘 초기화
 input_dim = X_train_tensor.shape[1]  # 입력 차원
 output_dim = 3  # 출력 차원 (클래스 수)
@@ -87,11 +94,16 @@ X_test_tensor = X_test_tensor.to(device)
 y_train_tensor = y_train_tensor.to(device)
 y_test_tensor = y_test_tensor.to(device)
 
+# 모델 초기화
+model.init_weights()
+
 # 학습 루프
 for index in range(nb_epochs):
     indices = torch.randperm(X_train_tensor.size(0), device=device)
     x_batch_list = X_train_tensor.index_select(0, indices).split(minibatch_size)
     y_batch_list = y_train_tensor.index_select(0, indices).split(minibatch_size)
+
+    break_flag = False  # 플래그 초기화
 
     for x_minibatch, y_minibatch in zip(x_batch_list, y_batch_list):
         y_minibatch_pred = model(x_minibatch)
@@ -100,20 +112,28 @@ for index in range(nb_epochs):
         loss.backward()
         optimizer.step()
 
+        # 손실이 0.1보다 작으면 학습 중단
+        if loss.item() < 0.05:
+            print(f'Early stopping at epoch: {index} | Loss: {loss.item()}')
+            break_flag = True  # 플래그 설정
+            break
+
+    if break_flag:  # 플래그가 설정되면 에포크 루프도 중단
+        break
+
     if index % 100 == 0:
         print(f'Epoch: {index} | Loss: {loss.item()}')
-
-# 모델 평가
-model.eval()
-with torch.no_grad():
-    y_pred_list = []
-    for x_test_batch in X_test_tensor.split(minibatch_size):
-        y_test_pred = model(x_test_batch)
-        y_pred_list.extend(torch.argmax(y_test_pred, dim=1).tolist())
-
-# 예측 결과 출력
-y_pred_tensor = torch.tensor(y_pred_list)
-print(y_pred_tensor.shape)
+# # 모델 평가
+# model.eval()
+# with torch.no_grad():
+#     y_pred_list = []
+#     for x_test_batch in X_test_tensor.split(minibatch_size):
+#         y_test_pred = model(x_test_batch)
+#         y_pred_list.extend(torch.argmax(y_test_pred, dim=1).tolist())
+#
+# # 예측 결과 출력
+# y_pred_tensor = torch.tensor(y_pred_list)
+# print(y_pred_tensor.shape)
 
 
 # 모델 평가 및 예측 결과 계산
