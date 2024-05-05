@@ -132,7 +132,55 @@ def train_model(model,early_stop,n_epochs,progress_interval):
 
 
 #훈련실행
-nb_epochs= 1000000
+nb_epochs= 1
 progress_interval= 1
-early_stop= 100
+early_stop= 1
 model,lowest_loss,train_losses,valid_losses= train_model(model,early_stop,nb_epochs,progress_interval)
+
+
+x_minibaatch, y_minibatch= next(iter(test_loader))
+y_test_pred= model(x_minibaatch.view(x_minibaatch.size(0), -1))
+pred= torch.argmax(y_test_pred, dim=1)
+print(y_test_pred.shape, y_minibatch.shape, pred.shape)
+correct= pred.eq(y_minibatch).sum()
+print(pred.eq(y_minibatch).sum(),pred.eq(y_minibatch).sum().item())
+
+wrong_idx=pred.ne(y_minibatch).nonzero()[:,0].numpy().tolist()
+for index in wrong_idx:
+    print(index)
+
+
+#최종코드
+
+test_loss=0
+correct=0
+worng_samples, wrong_preds,actual_preds= list(),list(),list()
+
+model.eval()
+with torch.no_grad():
+    for x_minibatch, y_minibatch in test_loader:
+        y_test_pred= model(x_minibatch.view(x_minibatch.size(0), -1))
+        test_loss+= loss_function(y_test_pred, y_minibatch).item()
+        pred = torch.argmax(y_test_pred, dim=1)
+        correct+= pred.eq(y_minibatch).sum().item()
+
+        wrong_idx= pred.ne(y_minibatch).nonzero()[:,0].numpy().tolist()
+        for index in wrong_idx:
+            worng_samples.append(x_minibatch[index])
+            wrong_preds.append(pred[index])
+            actual_preds.append(y_minibatch[index])
+
+test_loss/= len(test_loader.dataset)
+print('Test set: Average loss: {:.4f}'.format(test_loss))
+print('ACCURACY: {}/{} ({:.2f}%)'.format(correct, len(test_loader.dataset), 100. * correct / len(test_loader.dataset)))
+
+
+plt.figure(figsize=(12,12))
+for index in range(100):
+    plt.subplot(10,10,index+1)
+    plt.axis('off')
+    plt.imshow(worng_samples[index].numpy().reshape(28,28), cmap='gray')
+    plt.title('Actual: {}, Pred: {}'.format(actual_preds[index].item(), wrong_preds[index].item()))
+
+#창을 보인다
+plt.show()
