@@ -222,3 +222,14 @@ for index in range(100):
 
 #창을 보인다
 plt.show()
+
+plt.figure(figsize=(12,12))
+for index in range(100):
+    plt.subplot(10, 10, index + 1)
+    plt.axis('off')
+    plt.imshow(worng_samples[index].numpy( ).reshape(28,28), cmap = "gray")
+    plt.title("Pred" + str(wrong_preds[index].item()) + "(" + str(actual_preds[index].item()) + ")", color='red')
+
+#창을 보인다
+plt.show()
+
