@@ -76,16 +76,54 @@ class Model(nn.Module):
         y=self.linear_layer(x)
         return y
 
+
+class Layer(nn.Module):
+    def __init__(self, input_size, output_size, batch_norm=True, dropout=0.5):
+        self.input_size = input_size
+        self.output_size = output_size
+        self.batch_norm = batch_norm
+        self.dropout = dropout
+
+        super().__init__()
+
+        self.layer = nn.Sequential(
+            nn.Linear(input_size, output_size),
+            nn.LeakyReLU(),  # LeakyReLU 기본값은 0.01
+            self.apply_regularization()
+        )
+
+    def apply_regularization(self):
+        if self.batch_norm:
+            return nn.BatchNorm1d(self.output_size)  # 입력 사이즈를 넣어줘야 함 (입력이 그 앞단의 Linear Layer 의 출력 사이즈가 됨)
+        else:
+            return nn.Dropout(self.dropout)
+
+    def forward(self, x):
+        return self.layer(x)
+class DNNModel(nn.Module):
+    def __init__(self,input_size, output_size,batch_norm=True,dropout=True):
+        super().__init__()
+        self.layers= nn.Sequential(
+            Layer(input_size, 256, batch_norm, dropout),
+            Layer(256, 256, batch_norm, dropout),
+            Layer(256, 128, batch_norm, dropout),
+            nn.Linear(128, output_size),
+            nn.LogSoftmax(dim=1)
+        )
+    def forward(self, x):
+        return self.layers(x)
+
 #미니 배치사이즈 128
 minibatch_size= 128
 input_dim= 28*28
 output_dim= 10
-model= Model(input_dim, output_dim)
+model= DNNModel(input_dim, output_dim)
 #손실함수를 정의한다
 loss_function= nn.NLLLoss()# 로그소프트 맥스 함수이기때문에
 #옵티마이저를 정의한다
 optimizer= torch.optim.Adam(model.parameters())#아담은 러닝레이트가 필요없다
 
+print(model)
 #모델을 트레이닝하는 함수를 정의한다
 def train_model(model,early_stop,n_epochs,progress_interval):
     train_losses,vaild_losses,lowest_loss= list(),list(),np.inf
