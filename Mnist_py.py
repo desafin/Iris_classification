@@ -168,6 +168,39 @@ def train_model(model,early_stop,n_epochs,progress_interval):
     model.load_state_dict(best_model)
     return model,lowest_loss,train_losses,vaild_losses
 
+class CNNModel(nn.Module):
+    def __init__(self):
+        self.conv_layers= nn.Sequential(
+            nn.Conv2d(1, 32,kernel_size=3,stride=1,padding=1),
+            nn.LeakyReLU(0.1),
+            nn.BatchNorm2d(32),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.LeakyReLU(0.1),
+            nn.BatchNorm2d(64),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.LeakyReLU(0.1),
+            nn.BatchNorm2d(128),
+            nn.MaxPool2d(2)
+        )
+        self.linear_layers= nn.Sequential(
+            nn.Linear(128*3*3, 128),
+            nn.LeakyReLU(0.1),
+            nn.BatchNorm1d(128),
+            nn.Linear(128, 64),
+            nn.LeakyReLU(0.1),
+            nn.BatchNorm1d(64),
+            nn.Linear(64, 10),
+            nn.LogSoftmax(dim=1)
+        )
+        def forward(self, x):
+            x= self.conv_layers(x)
+            x= x.view(x.size(0), -1)
+            x= self.linear_layers(x)
+            return x
 
 #훈련실행
 nb_epochs= 1
