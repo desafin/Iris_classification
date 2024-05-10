@@ -69,11 +69,11 @@ class CNNModel(nn.Module):
             nn.Linear(64, 10),
             nn.LogSoftmax(dim=1)
         )
-        def forward(self, x):
-            x= self.conv_layers(x)
-            x= x.view(x.size(0), -1)
-            x= self.linear_layers(x)
-            return x
+    def forward(self, x):
+        x= self.conv_layers(x)
+        x= x.view(x.size(0), -1)
+        x= self.linear_layers(x)
+        return x
 
 
 model= CNNModel()
@@ -95,21 +95,23 @@ def train_model(model,early_stop,n_epochs,progress_interval):
         train_loss,valid_loss= 0,0
         #모델 훈련
         model.train()
-        for x_minibatch, y_minibatch in train_batches:
-            y_minibatch_pred= model(x_minibatch.view(x_minibatch.size(0), -1))
+        for x_minibatch, y_minibatch in train_loader:
+            x_minibatch = x_minibatch.view(x_minibatch.size(0), 1, 28, 28)  # 수정된 부분
+            y_minibatch_pred = model(x_minibatch)
             loss= loss_function(y_minibatch_pred, y_minibatch)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss+= loss.item()
-        train_loss= train_loss/len(train_batches)
+        train_loss= train_loss/len(train_loader)
         train_losses.append(train_loss)
 
         #모델 검증
         model.eval()
         with (torch.no_grad()):
             for x_minibatch, y_minibatch in val_loader:
-                y_minibatch_pred= model(x_minibatch.view(x_minibatch.size(0), -1))
+                x_minibatch = x_minibatch.view(x_minibatch.size(0), 1, 28, 28)  # 수정된 부분
+                y_minibatch_pred = model(x_minibatch)
                 loss= loss_function(y_minibatch_pred, y_minibatch)
                 valid_loss+= loss.item()
 
